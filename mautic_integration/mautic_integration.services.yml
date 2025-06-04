@@ -1,0 +1,57 @@
+services:
+  # Logger service for Mautic Integration
+  mautic_integration.logger:
+    parent: logger.channel_base
+    arguments: ['mautic_integration']
+
+  # OAuth2 token manager service
+  mautic_integration.token_manager:
+    class: Drupal\mautic_integration\Service\OAuth2TokenManager
+    arguments:
+      - '@config.factory'
+      - '@http_client'
+      - '@state'
+      - '@datetime.time'
+      - '@mautic_integration.logger'
+
+  # Main Mautic API client service
+  mautic_integration.api_client:
+    class: Drupal\mautic_integration\Service\MauticApiClient
+    arguments:
+      - '@config.factory'
+      - '@http_client'
+      - '@mautic_integration.logger'
+      - '@cache.default'
+      - '@mautic_integration.token_manager'
+
+  # Session tracker service
+  mautic_integration.session_tracker:
+    class: Drupal\mautic_integration\Service\MauticSessionTracker
+    arguments:
+      - '@request_stack'
+      - '@mautic_integration.api_client'
+      - '@mautic_integration.logger'
+
+  # Form manager service
+  mautic_integration.form_manager:
+    class: Drupal\mautic_integration\Service\MauticFormManager
+    arguments:
+      - '@mautic_integration.api_client'
+      - '@cache.default'
+      - '@mautic_integration.logger'
+
+  # Segment manager service
+  mautic_integration.segment_manager:
+    class: Drupal\mautic_integration\Service\MauticSegmentManager
+    arguments:
+      - '@mautic_integration.api_client'
+      - '@mautic_integration.session_tracker'
+      - '@cache.default'
+      - '@mautic_integration.logger'
+
+  # Configuration validator service
+  mautic_integration.config_validator:
+    class: Drupal\mautic_integration\Service\ConfigValidator
+    arguments:
+      - '@mautic_integration.api_client'
+      - '@mautic_integration.logger'

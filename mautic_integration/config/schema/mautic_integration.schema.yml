@@ -1,0 +1,91 @@
+# Configuration schema for Mautic Integration module
+mautic_integration.settings:
+  type: config_object
+  label: 'Mautic Integration Settings'
+  mapping:
+    # Basic Mautic connection settings
+    mautic_url:
+      type: string
+      label: 'Mautic Base URL'
+      nullable: true
+    
+    # OAuth2 Authentication settings
+    oauth2_enabled:
+      type: boolean
+      label: 'Enable OAuth2 Authentication'
+    
+    client_id:
+      type: string
+      label: 'OAuth2 Client ID'
+      nullable: true
+    
+    client_secret:
+      type: string
+      label: 'OAuth2 Client Secret'
+      nullable: true
+    
+    # Basic Authentication settings (alternative)
+    basic_auth_enabled:
+      type: boolean
+      label: 'Enable Basic Authentication'
+    
+    username:
+      type: string
+      label: 'Basic Auth Username'
+      nullable: true
+    
+    password:
+      type: string
+      label: 'Basic Auth Password'
+      nullable: true
+    
+    # Tracking settings
+    tracking_enabled:
+      type: boolean
+      label: 'Enable Mautic Tracking'
+    
+    tracking_script:
+      type: text
+      label: 'Mautic Tracking Script'
+      nullable: true
+    
+    # Form settings
+    default_form_theme:
+      type: string
+      label: 'Default Form Theme'
+      nullable: true
+    
+    form_cache_enabled:
+      type: boolean
+      label: 'Enable Form Caching'
+    
+    form_cache_lifetime:
+      type: integer
+      label: 'Form Cache Lifetime (seconds)'
+    
+    # Segment settings
+    segment_cache_enabled:
+      type: boolean
+      label: 'Enable Segment Caching'
+    
+    segment_cache_lifetime:
+      type: integer
+      label: 'Segment Cache Lifetime (seconds)'
+    
+    # API settings
+    api_timeout:
+      type: integer
+      label: 'API Request Timeout (seconds)'
+    
+    api_retry_attempts:
+      type: integer
+      label: 'API Retry Attempts'
+    
+    # Debug and logging
+    debug_mode:
+      type: boolean
+      label: 'Enable Debug Mode'
+    
+    log_api_calls:
+      type: boolean
+      label: 'Log API Calls'

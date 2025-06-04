@@ -1,0 +1,13 @@
+# Permissions for Mautic Integration module
+administer mautic integration:
+  title: 'Administer Mautic Integration'
+  description: 'Configure Mautic integration settings, manage forms and segments.'
+  restrict access: true
+
+view mautic forms:
+  title: 'View Mautic Forms'
+  description: 'View Mautic forms embedded in blocks.'
+
+view mautic segments:
+  title: 'View Mautic Segments'
+  description: 'View contact segments from Mautic.'

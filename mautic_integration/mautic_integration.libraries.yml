@@ -1,0 +1,7 @@
+mautic_cookie_bridge:
+  version: 1.x
+  js:
+    js/mautic-cookie-bridge.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings

@@ -1,0 +1,171 @@
+{#
+/**
+ * @file
+ * Template for Mautic Segments Block.
+ *
+ * Available variables:
+ * - segments: Array of segment names
+ * - user_info: User information including session_id, contact, etc.
+ * - display_mode: How to display segments (list, inline, badges, custom)
+ * - separator: Separator for inline/custom display
+ * - show_title: Whether to show title
+ * - title_text: Custom title text
+ * - show_when_empty: Whether to show when no segments
+ * - empty_message: Message when no segments
+ * - show_contact_info: Whether to show debug contact info
+ * - custom_css_class: Custom CSS classes
+ */
+#}
+
+{% set classes = [
+  'mautic-segments-block',
+  'mautic-segments-' ~ display_mode,
+  custom_css_class ? custom_css_class,
+  segments|length > 0 ? 'has-segments' : 'no-segments'
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  
+  {% if show_title and title_text %}
+    <h3 class="mautic-segments-title">{{ title_text }}</h3>
+  {% endif %}
+  
+  {% if segments|length > 0 %}
+    <div class="mautic-segments-content">
+      
+      {% if display_mode == 'list' %}
+        <ul class="mautic-segments-list">
+          {% for segment in segments %}
+            <li class="mautic-segment-item">{{ segment }}</li>
+          {% endfor %}
+        </ul>
+        
+      {% elseif display_mode == 'inline' or display_mode == 'custom' %}
+        <div class="mautic-segments-inline">
+          {{ segments|join(separator) }}
+        </div>
+        
+      {% elseif display_mode == 'badges' %}
+        <div class="mautic-segments-badges">
+          {% for segment in segments %}
+            <span class="mautic-segment-badge">{{ segment }}</span>
+          {% endfor %}
+        </div>
+        
+      {% endif %}
+      
+    </div>
+    
+  {% elseif show_when_empty %}
+    <div class="mautic-segments-empty">
+      {{ empty_message }}
+    </div>
+  {% endif %}
+  
+  {% if show_contact_info and user_info %}
+    <div class="mautic-debug-info">
+      <details>
+        <summary>{{ 'Debug Information'|t }}</summary>
+        <div class="debug-content">
+          <p><strong>{{ 'Session ID'|t }}:</strong> {{ user_info.session_id|default('Not found') }}</p>
+          <p><strong>{{ 'Tracking Active'|t }}:</strong> {{ user_info.tracking_active ? 'Yes'|t : 'No'|t }}</p>
+          {% if user_info.contact %}
+            <p><strong>{{ 'Contact ID'|t }}:</strong> {{ user_info.contact.id }}</p>
+            {% if user_info.contact.fields.core.email.value %}
+              <p><strong>{{ 'Email'|t }}:</strong> {{ user_info.contact.fields.core.email.value }}</p>
+            {% endif %}
+          {% else %}
+            <p><strong>{{ 'Contact'|t }}:</strong> {{ 'Not found'|t }}</p>
+          {% endif %}
+          <p><strong>{{ 'Segments Count'|t }}:</strong> {{ segments|length }}</p>
+        </div>
+      </details>
+    </div>
+  {% endif %}
+  
+</div>
+
+{# Add styling #}
+<style>
+  .mautic-segments-block {
+    margin: 1em 0;
+  }
+  
+  .mautic-segments-title {
+    margin-bottom: 0.5em;
+    font-size: 1.2em;
+    font-weight: bold;
+  }
+  
+  .mautic-segments-list {
+    list-style-type: disc;
+    margin-left: 1.5em;
+  }
+  
+  .mautic-segment-item {
+    margin-bottom: 0.25em;
+  }
+  
+  .mautic-segments-inline {
+    font-weight: 500;
+  }
+  
+  .mautic-segments-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+  }
+  
+  .mautic-segment-badge {
+    display: inline-block;
+    background: #007cba;
+    color: white;
+    padding: 0.25em 0.75em;
+    border-radius: 1em;
+    font-size: 0.9em;
+    font-weight: 500;
+  }
+  
+  .mautic-segments-empty {
+    color: #666;
+    font-style: italic;
+    padding: 0.5em;
+    background: #f9f9f9;
+    border-left: 3px solid #ddd;
+  }
+  
+  .mautic-debug-info {
+    margin-top: 1em;
+    font-size: 0.9em;
+  }
+  
+  .mautic-debug-info details {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.5em;
+  }
+  
+  .mautic-debug-info summary {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0.25em;
+  }
+  
+  .debug-content {
+    margin-top: 0.5em;
+    padding-top: 0.5em;
+    border-top: 1px solid #eee;
+  }
+  
+  .debug-content p {
+    margin: 0.25em 0;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .mautic-segments-badges {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

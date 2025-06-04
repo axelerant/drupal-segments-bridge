@@ -1,0 +1,54 @@
+{# Ultra-simple form template - no CORS issues #}
+{% set classes = [
+  'mautic-form-block',
+  'mautic-form-' ~ form_id,
+  custom_css_class ? custom_css_class
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  
+  {% if show_title and form_name %}
+    <h3 class="mautic-form-title">{{ form_name }}</h3>
+  {% endif %}
+  
+  {% if show_description and form_description %}
+    <div class="mautic-form-description">
+      {{ form_description|raw }}
+    </div>
+  {% endif %}
+  
+  <div class="mautic-form-container">
+    <iframe 
+      src="{{ mautic_url }}/form/{{ form_id }}" 
+      width="100%" 
+      height="600" 
+      frameborder="0"
+      style="border: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      {{ 'Your browser does not support iframes.'|t }}
+    </iframe>
+  </div>
+
+</div>
+
+<style>
+.mautic-form-block {
+  margin: 1em 0;
+}
+.mautic-form-title {
+  margin-bottom: 0.5em;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+.mautic-form-description {
+  margin-bottom: 1em;
+  color: #666;
+}
+.mautic-form-container iframe {
+  max-width: 100%;
+}
+@media (max-width: 768px) {
+  .mautic-form-container iframe {
+    height: 700px;
+  }
+}
+</style>

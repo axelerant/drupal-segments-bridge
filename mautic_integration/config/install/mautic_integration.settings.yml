@@ -1,0 +1,19 @@
+# Default configuration for Mautic Integration module
+mautic_url: ''
+oauth2_enabled: true
+client_id: ''
+client_secret: ''
+basic_auth_enabled: false
+username: ''
+password: ''
+tracking_enabled: true
+tracking_script: ''
+default_form_theme: ''
+form_cache_enabled: true
+form_cache_lifetime: 3600
+segment_cache_enabled: true
+segment_cache_lifetime: 300
+api_timeout: 30
+api_retry_attempts: 3
+debug_mode: false
+log_api_calls: false

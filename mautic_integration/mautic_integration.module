@@ -1,0 +1,266 @@
+<?php
+
+/**
+ * @file
+ * Mautic Integration module.
+ *
+ * Provides integration between Drupal and Mautic for tracking, forms, and contact segmentation.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_help().
+ */
+function mautic_integration_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.mautic_integration':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Mautic Integration module provides seamless integration between Drupal and Mautic marketing automation platform.') . '</p>';
+      $output .= '<h3>' . t('Features') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Automatic Mautic tracking script injection') . '</li>';
+      $output .= '<li>' . t('Embed Mautic forms as Drupal blocks') . '</li>';
+      $output .= '<li>' . t('Display contact segments based on Mautic session tracking') . '</li>';
+      $output .= '<li>' . t('Full OAuth2 API integration with Mautic') . '</li>';
+      $output .= '</ul>';
+      $output .= '<h3>' . t('Configuration') . '</h3>';
+      $output .= '<p>' . t('Configure the module at <a href="@config">Administration > Configuration > System > Mautic Integration</a>.', [
+        '@config' => \Drupal::url('mautic_integration.admin_settings'),
+      ]) . '</p>';
+      return $output;
+
+    case 'mautic_integration.admin_settings':
+      return '<p>' . t('Configure your Mautic instance connection settings and API credentials.') . '</p>';
+  }
+}
+
+/**
+ * Generate simple Mautic tracking script (used when no custom script provided).
+ *
+ * @param string $mautic_url
+ *   The Mautic base URL.
+ *
+ * @return string
+ *   The generated tracking script matching official Mautic format.
+ */
+function _mautic_integration_generate_simple_tracking_script($mautic_url) {
+  $mtc_url = rtrim($mautic_url, '/') . '/mtc.js';
+  
+  // Official Mautic tracking script format (matches documentation)
+  $script = "
+(function(w,d,t,u,n,a,m){w['MauticTrackingObject']=n;
+  w[n]=w[n]||function(){(w[n].q=w[n].q||[]).push(arguments)},a=d.createElement(t),
+  m=d.getElementsByTagName(t)[0];a.async=1;a.src=u;m.parentNode.insertBefore(a,m)
+})(window,document,'script','{$mtc_url}','mt');
+mt('send', 'pageview');
+";
+
+  return $script;
+}
+
+/**
+ * Generate JavaScript cookie bridge to capture Mautic cookies.
+ *
+ * @return string
+ *   JavaScript code to detect and send Mautic cookies to Drupal.
+ */
+function _mautic_integration_generate_cookie_bridge_script() {
+  $script = "
+// Mautic Cookie Bridge - Detect and store cookie data for Drupal
+(function() {
+  console.log('🔗 Mautic Cookie Bridge: Starting...');
+  
+  function getMauticCookies() {
+    var cookies = {};
+    var allCookies = document.cookie.split(';');
+    
+    allCookies.forEach(function(cookie) {
+      var parts = cookie.trim().split('=');
+      if (parts.length === 2) {
+        var name = parts[0];
+        var value = decodeURIComponent(parts[1]);
+        
+        // Look for Mautic-related cookies
+        if (name.indexOf('mtc') === 0 || name.indexOf('mautic') === 0) {
+          cookies[name] = value;
+          console.log('🍪 Found Mautic cookie:', name, '=', value);
+        }
+      }
+    });
+    
+    return cookies;
+  }
+  
+  function sendCookiesToDrupal(cookies) {
+    if (Object.keys(cookies).length === 0) {
+      console.log('⚠️ No Mautic cookies found to send');
+      return;
+    }
+    
+    // Store in sessionStorage for Drupal to access
+    try {
+      sessionStorage.setItem('mautic_cookies', JSON.stringify(cookies));
+      console.log('✅ Mautic cookies stored in sessionStorage');
+    } catch(e) {
+      console.error('❌ Failed to store cookies in sessionStorage:', e);
+    }
+    
+    // Also send via AJAX to Drupal endpoint (optional)
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/mautic-integration/store-cookies', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          console.log('✅ Cookies sent to Drupal successfully');
+        } else {
+          console.log('⚠️ Could not send cookies to Drupal (endpoint may not exist)');
+        }
+      }
+    };
+    
+    try {
+      xhr.send(JSON.stringify({cookies: cookies}));
+    } catch(e) {
+      console.log('⚠️ AJAX request failed, but sessionStorage should work');
+    }
+  }
+  
+  // Check for cookies immediately
+  var cookies = getMauticCookies();
+  if (Object.keys(cookies).length > 0) {
+    sendCookiesToDrupal(cookies);
+  }
+  
+  // Also check after a delay (in case cookies are set by tracking script)
+  setTimeout(function() {
+    var laterCookies = getMauticCookies();
+    if (Object.keys(laterCookies).length > 0) {
+      sendCookiesToDrupal(laterCookies);
+    }
+  }, 3000);
+  
+  // Expose function globally for testing
+  window.mauticGetCookies = getMauticCookies;
+  window.mauticSendCookies = sendCookiesToDrupal;
+  
+  console.log('🔗 Mautic Cookie Bridge: Ready. Test with: mauticGetCookies()');
+})();
+";
+
+  return $script;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function mautic_integration_theme() {
+  return [
+    'mautic_form_block' => [
+      'variables' => [
+        'form_id' => NULL,
+        'form_name' => NULL,
+        'form_description' => NULL,
+        'mautic_url' => NULL,
+        'form_script_url' => NULL,
+        'show_title' => TRUE,
+        'show_description' => FALSE,
+        'custom_css_class' => '',
+      ],
+      'template' => 'mautic-form-block',
+    ],
+    'mautic_segments_block' => [
+      'variables' => [
+        'segments' => [],
+        'user_info' => NULL,
+        'display_mode' => 'list',
+        'separator' => ', ',
+        'show_title' => TRUE,
+        'title_text' => 'Your Segments',
+        'show_when_empty' => FALSE,
+        'empty_message' => 'No segments found.',
+        'show_contact_info' => FALSE,
+        'custom_css_class' => '',
+      ],
+      'template' => 'mautic-segments-block',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for mautic_form_block.
+ */
+function mautic_integration_preprocess_mautic_form_block(&$variables) {
+  // Add any preprocessing logic for form blocks here
+  $variables['#cache']['contexts'][] = 'cookies:mtc_id';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for mautic_segments_block.
+ */
+function mautic_integration_preprocess_mautic_segments_block(&$variables) {
+  // Add any preprocessing logic for segments blocks here
+  $variables['#cache']['contexts'][] = 'cookies:mtc_id';
+  $variables['#cache']['max-age'] = 300; // Cache for 5 minutes
+}
+
+/**
+ * Implements hook_page_bottom().
+ *
+ * Adds Mautic tracking script and cookie bridge before </body> tag.
+ */
+function mautic_integration_page_bottom(array &$page_bottom) {
+  $config = \Drupal::config('mautic_integration.settings');
+  
+  // Only add tracking if enabled and configured
+  if (!$config->get('tracking_enabled') || !$config->get('mautic_url')) {
+    return;
+  }
+
+  $mautic_url = rtrim($config->get('mautic_url'), '/');
+  
+  // Check if user provided custom tracking script
+  $custom_script = $config->get('tracking_script');
+  
+  if (!empty($custom_script)) {
+    // Use custom tracking script provided by user - place before </body>
+    $page_bottom['mautic_tracking'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'script',
+      '#value' => $custom_script,
+      '#attributes' => [
+        'type' => 'text/javascript',
+      ],
+      '#weight' => 1000, // Load late
+    ];
+  }
+  else {
+    // Generate basic Mautic tracking script automatically
+    $tracking_script = _mautic_integration_generate_simple_tracking_script($mautic_url);
+    
+    $page_bottom['mautic_tracking'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'script',
+      '#value' => $tracking_script,
+      '#attributes' => [
+        'type' => 'text/javascript',
+      ],
+      '#weight' => 1000, // Load late
+    ];
+  }
+  
+  // Add JavaScript bridge to capture and send cookie data to Drupal
+  // $page_bottom['mautic_cookie_bridge'] = [
+  //   '#type' => 'html_tag',
+  //   '#tag' => 'script',
+  //   '#value' => _mautic_integration_generate_cookie_bridge_script(),
+  //   '#attributes' => [
+  //     'type' => 'text/javascript',
+  //   ],
+  //   '#weight' => 1001, // Load after tracking script
+  // ];
+}

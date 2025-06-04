@@ -1,0 +1,45 @@
+# Admin configuration routes
+mautic_integration.admin_settings:
+  path: '/admin/config/system/mautic-integration'
+  defaults:
+    _form: '\Drupal\mautic_integration\Form\AdminSettingsForm'
+    _title: 'Mautic Integration Settings'
+  requirements:
+    _permission: 'administer mautic integration'
+
+# API test route for admin
+mautic_integration.api_test:
+  path: '/admin/config/system/mautic-integration/test'
+  defaults:
+    _controller: '\Drupal\mautic_integration\Controller\ApiTestController::testConnection'
+    _title: 'Test Mautic API Connection'
+  requirements:
+    _permission: 'administer mautic integration'
+  methods: [POST]
+
+# Debug tracking route
+mautic_integration.debug:
+  path: '/admin/config/system/mautic-integration/debug'
+  defaults:
+    _controller: '\Drupal\mautic_integration\Controller\DebugController::debugTracking'
+    _title: 'Debug Mautic Tracking'
+  requirements:
+    _permission: 'administer mautic integration'
+
+# Cookie bridge endpoint for JavaScript to send cookie data
+mautic_integration.store_cookies:
+  path: '/mautic-integration/store-cookies'
+  defaults:
+    _controller: '\Drupal\mautic_integration\Controller\CookieBridgeController::storeCookies'
+  requirements:
+    _permission: 'access content'
+  methods: [POST]
+
+# Mautic form redirect handler
+mautic_integration.redirect:
+  path: '/mautic-redirect'
+  defaults:
+    _controller: '\Drupal\mautic_integration\Controller\MauticRedirectHandler::handleRedirect'
+  requirements:
+    _permission: 'access content'
+  methods: [GET]
